@@ -1,0 +1,2916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Signal - Feedback Signal Engine</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --background: #FAFAFB;
+      --foreground: #111827;
+      --card: #FFFFFF;
+      --card-foreground: #111827;
+      --border: #E5E7EB;
+      --muted: #F3F4F6;
+      --muted-foreground: #6B7280;
+      --accent: #F6821F;
+      --accent-foreground: #ffffff;
+      --high-signal: #10B981;
+      --medium-signal: #F59E0B;
+      --low-signal: #6B7280;
+    }
+
+    * {
+      border-color: var(--border);
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: var(--background);
+      color: var(--foreground);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Card Component */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .card-hover:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      border-color: var(--border);
+    }
+
+    .card-high {
+      border-left: 3px solid var(--high-signal);
+    }
+
+    .card-high:hover {
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
+      border-left-color: var(--high-signal);
+    }
+
+    .card-medium {
+      border-left: 3px solid var(--medium-signal);
+    }
+
+    .card-medium:hover {
+      border-left-color: var(--medium-signal);
+    }
+
+    .card-low {
+      border-left: 3px solid var(--low-signal);
+    }
+
+    .card-low:hover {
+      border-left-color: var(--low-signal);
+    }
+
+    .executive-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    .metric-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .trend-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: var(--muted-foreground);
+    }
+
+    .trend-bar {
+      display: inline-block;
+      width: 3px;
+      height: 12px;
+      background: var(--muted-foreground);
+      border-radius: 2px;
+      margin: 0 1px;
+    }
+
+    .trend-bar.active {
+      background: var(--accent);
+    }
+
+    .theme-stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      transition: all 0.2s ease;
+    }
+
+    .theme-stat-card-high {
+      border-left: 3px solid var(--high-signal);
+    }
+
+    .theme-stat-card-medium {
+      border-left: 3px solid var(--medium-signal);
+    }
+
+    .theme-stat-card-low {
+      border-left: 3px solid var(--low-signal);
+    }
+
+    /* Button Component */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      font-weight: 500;
+      font-size: 14px;
+      padding: 8px 16px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: none;
+      outline: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: var(--accent-foreground);
+    }
+
+    .btn-primary:hover {
+      background: #e6731a;
+    }
+
+    .btn-secondary {
+      background: var(--muted);
+      color: var(--foreground);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: #E5E7EB;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--foreground);
+    }
+
+    .btn-ghost:hover {
+      background: var(--muted);
+    }
+
+    /* Badge Component */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+    }
+
+    .badge-high {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--high-signal);
+      border-color: rgba(16, 185, 129, 0.2);
+    }
+
+    .badge-medium {
+      background: rgba(245, 158, 11, 0.1);
+      color: var(--medium-signal);
+      border-color: rgba(245, 158, 11, 0.2);
+    }
+
+    .badge-low {
+      background: rgba(107, 114, 128, 0.1);
+      color: var(--low-signal);
+      border-color: rgba(107, 114, 128, 0.2);
+    }
+
+    .badge-source {
+      background: var(--muted);
+      color: var(--muted-foreground);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Tabs Component */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px;
+    }
+
+    .tab {
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: transparent;
+      color: var(--muted-foreground);
+      border: none;
+    }
+
+    .tab-active {
+      background: var(--card);
+      color: var(--foreground);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .tab:hover:not(.tab-active) {
+      background: rgba(255, 255, 255, 0.5);
+      color: var(--foreground);
+    }
+
+    /* Alert Component */
+    .alert {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      transition: all 0.2s ease;
+    }
+
+    .action-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .action-item:hover {
+      background: rgba(246, 130, 31, 0.05);
+    }
+
+    .action-icon {
+      color: var(--accent);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .alert-title {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 8px;
+      color: var(--foreground);
+    }
+
+    .alert-description {
+      font-size: 14px;
+      color: var(--muted-foreground);
+      line-height: 1.6;
+    }
+
+    /* Separator */
+    .separator {
+      height: 1px;
+      background: var(--border);
+      margin: 16px 0;
+    }
+
+    /* Dialog/Sheet */
+    .sheet {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 400px;
+      height: 100vh;
+      background: var(--card);
+      border-left: 1px solid var(--border);
+      box-shadow: -4px 0 24px rgba(0, 0, 0, 0.1);
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.3s ease-in-out;
+    }
+
+    .sheet.closed {
+      transform: translateX(100%);
+    }
+
+    .sheet-header {
+      background: var(--background);
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Message Bubbles */
+    .message-bubble {
+      max-width: 80%;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .message-user {
+      background: rgba(246, 130, 31, 0.1);
+      border: 1px solid rgba(246, 130, 31, 0.2);
+      color: var(--foreground);
+      margin-left: auto;
+    }
+
+    .message-ai {
+      background: var(--muted);
+      border: 1px solid var(--border);
+      color: var(--foreground);
+      margin-right: auto;
+    }
+
+    /* Loading */
+    .loading {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .5; }
+    }
+
+    /* Input */
+    .input {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--foreground);
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(246, 130, 31, 0.1);
+    }
+
+    .input::placeholder {
+      color: var(--muted-foreground);
+    }
+
+    /* Hover effects */
+    .hover-lift:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    .hover-lift {
+      transition: all 0.2s ease;
+    }
+
+    /* Number styling */
+    .number-high {
+      color: var(--high-signal);
+      font-weight: 700;
+    }
+
+    .number-medium {
+      color: var(--medium-signal);
+      font-weight: 700;
+    }
+
+    .number-low {
+      color: var(--low-signal);
+      font-weight: 700;
+    }
+
+    .filter-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 12px;
+      border-radius: 16px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--foreground);
+    }
+
+    .filter-chip:hover {
+      background: var(--muted);
+      border-color: var(--accent);
+    }
+
+    .filter-chip.active {
+      background: var(--accent);
+      color: var(--accent-foreground);
+      border-color: var(--accent);
+    }
+
+    .filter-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .filter-dropdown-content {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      margin-top: 4px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      z-index: 100;
+      min-width: 200px;
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    .filter-dropdown-item {
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .filter-dropdown-item:hover {
+      background: var(--muted);
+    }
+
+    .filter-dropdown-item.selected {
+      background: rgba(246, 130, 31, 0.1);
+      color: var(--accent);
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      top: 80px;
+      right: 24px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: slideInRight 0.3s ease-out;
+      max-width: 400px;
+    }
+
+    @keyframes slideInRight {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .toast-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .toast-content {
+      flex: 1;
+      font-size: 14px;
+      color: var(--foreground);
+    }
+
+    /* New Item Animation */
+    .new-item {
+      animation: slideInHighlight 0.5s ease-out;
+    }
+
+    @keyframes slideInHighlight {
+      0% {
+        opacity: 0;
+        transform: translateY(-10px);
+        box-shadow: 0 0 0 0 rgba(246, 130, 31, 0);
+      }
+      50% {
+        box-shadow: 0 0 0 4px rgba(246, 130, 31, 0.2);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+
+    const API_BASE = window.location.origin;
+
+    function App() {
+      // Routing state
+      const [currentRoute, setCurrentRoute] = useState(() => {
+        const hash = window.location.hash.slice(1);
+        if (hash.startsWith('focus')) return 'focus';
+        return hash || 'home';
+      });
+      
+      // Focus page state
+      const [focusFeedbackId, setFocusFeedbackId] = useState(() => {
+        const hash = window.location.hash.slice(1);
+        const match = hash.match(/focus\?id=(\d+)/);
+        return match ? parseInt(match[1]) : null;
+      });
+      
+      const [pmNotes, setPmNotes] = useState(() => {
+        if (focusFeedbackId) {
+          const saved = localStorage.getItem(`pm_notes_${focusFeedbackId}`);
+          return saved || '';
+        }
+        return '';
+      });
+      
+      const [focusAiResponse, setFocusAiResponse] = useState(null);
+      const [focusAiLoading, setFocusAiLoading] = useState(false);
+      
+      const [feedback, setFeedback] = useState([]);
+      const [selectedFeedback, setSelectedFeedback] = useState(null);
+      const [explanation, setExplanation] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [explainLoading, setExplainLoading] = useState(false);
+      const [expandedTheme, setExpandedTheme] = useState(null);
+      const [chatOpen, setChatOpen] = useState(false);
+      const [chatMessages, setChatMessages] = useState([]);
+      const [chatInput, setChatInput] = useState('');
+      const [chatLoading, setChatLoading] = useState(false);
+      const [filter, setFilter] = useState('all');
+      const [searchQuery, setSearchQuery] = useState('');
+      const [selectedSources, setSelectedSources] = useState([]);
+      const [selectedThemes, setSelectedThemes] = useState([]);
+      const [toast, setToast] = useState(null);
+      const [newItemIds, setNewItemIds] = useState(new Set());
+      const [newFeedbackCount, setNewFeedbackCount] = useState(0);
+      const chatMessagesEndRef = React.useRef(null);
+      
+      // Explorer-specific state
+      const [explorerSearch, setExplorerSearch] = useState('');
+      const [explorerSources, setExplorerSources] = useState([]);
+      const [explorerThemes, setExplorerThemes] = useState([]);
+      const [explorerSignal, setExplorerSignal] = useState('all');
+      const [explorerSort, setExplorerSort] = useState('newest');
+      const [explorerChatScope, setExplorerChatScope] = useState(false);
+      
+      // Reset explorer chat scope when leaving explorer
+      useEffect(() => {
+        if (currentRoute !== 'explorer') {
+          setExplorerChatScope(false);
+        }
+      }, [currentRoute]);
+
+      // Handle hash routing
+      useEffect(() => {
+        const handleHashChange = () => {
+          const hash = window.location.hash.slice(1);
+          if (hash.startsWith('focus')) {
+            setCurrentRoute('focus');
+            const match = hash.match(/focus\?id=(\d+)/);
+            if (match) {
+              const id = parseInt(match[1]);
+              setFocusFeedbackId(id);
+              const saved = localStorage.getItem(`pm_notes_${id}`);
+              setPmNotes(saved || '');
+            }
+          } else if (hash.startsWith('explorer')) {
+            setCurrentRoute('explorer');
+            // Parse URL params for explorer filters
+            const urlParams = new URLSearchParams(hash.split('?')[1] || '');
+            const themeParam = urlParams.get('theme');
+            const signalParam = urlParams.get('signal');
+            if (themeParam) {
+              setExplorerThemes([themeParam]);
+            }
+            if (signalParam) {
+              setExplorerSignal(signalParam);
+            }
+          } else {
+            setCurrentRoute(hash || 'home');
+            setFocusFeedbackId(null);
+          }
+        };
+        
+        handleHashChange(); // Initial check
+        window.addEventListener('hashchange', handleHashChange);
+        return () => window.removeEventListener('hashchange', handleHashChange);
+      }, []);
+      
+      // Save PM notes to localStorage
+      useEffect(() => {
+        if (focusFeedbackId && pmNotes !== null) {
+          localStorage.setItem(`pm_notes_${focusFeedbackId}`, pmNotes);
+        }
+      }, [pmNotes, focusFeedbackId]);
+
+      useEffect(() => {
+        fetchFeedback();
+      }, []);
+
+      useEffect(() => {
+        if (chatMessagesEndRef.current) {
+          chatMessagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, [chatMessages, chatLoading]);
+
+      // Simulate new feedback arrival after 10-15 seconds (max 2 times)
+      const newFeedbackTimerRef = React.useRef(null);
+      const newFeedbackCountRef = React.useRef(0);
+
+      useEffect(() => {
+        if (loading || feedback.length === 0) return;
+
+        const createNewFeedback = () => {
+          // Generate a realistic new feedback item
+          const sources = ['support', 'github', 'discord', 'twitter'];
+          const themes = ['performance', 'dev_experience', 'docs', 'billing', 'observability_logs', 'deployments', 'security', 'api_ergonomics'];
+          const signalWeights = { high: 0.25, medium: 0.45, low: 0.30 };
+          const random = Math.random();
+          const signal = random < signalWeights.high ? 'high' : 
+                       random < signalWeights.high + signalWeights.medium ? 'medium' : 'low';
+          
+          const source = sources[Math.floor(Math.random() * sources.length)];
+          const theme = themes[Math.floor(Math.random() * themes.length)];
+          const userType = ['power_user', 'enterprise', 'new_user'][Math.floor(Math.random() * 3)];
+
+          // Sample realistic feedback texts based on theme and signal
+          const feedbackTemplates = {
+            performance: {
+              high: 'We noticed a 200ms latency increase in our Workers API over the past week. This correlates with a recent deploy. Investigating now.',
+              medium: 'API response times seem slower lately. Not sure if its our code or the platform.',
+              low: 'Is Workers supposed to be fast?'
+            },
+            dev_experience: {
+              high: 'Wrangler dev now supports hot reload for route changes, which is great! But it still restarts on config file changes. Can we get that too?',
+              medium: 'The new wrangler features are nice but the CLI output could be cleaner.',
+              low: 'CLI is confusing'
+            },
+            docs: {
+              high: 'The new Workers AI examples page is helpful, but the streaming response example is missing error handling patterns.',
+              medium: 'Docs are getting better but still missing some edge cases.',
+              low: 'More docs please'
+            },
+            billing: {
+              high: 'Cost breakdown by Worker route would help us optimize spend. Right now we can only see totals.',
+              medium: 'Billing dashboard is clearer now but still hard to predict costs.',
+              low: 'Too expensive'
+            },
+            observability_logs: {
+              high: 'Real-time log streaming in the dashboard is working well, but we need structured log export for our SIEM.',
+              medium: 'Logs are better but search could be faster.',
+              low: 'Need more logs'
+            },
+            deployments: {
+              high: 'Canary deployments are working great! One request: add automatic rollback on error rate threshold.',
+              medium: 'Deployments are smoother but preview environments would be nice.',
+              low: 'Deploy faster'
+            },
+            security: {
+              high: 'The new CSP configuration wizard is helpful. However, we need guidance on CSP for Workers that call third-party APIs.',
+              medium: 'Security features are good but documentation could cover more scenarios.',
+              low: 'More security'
+            },
+            api_ergonomics: {
+              high: 'The new Hono integration makes routing much cleaner. Would love to see official support for more frameworks.',
+              medium: 'API ergonomics are improving but still feels verbose compared to Express.',
+              low: 'Make it easier'
+            }
+          };
+
+          const text = feedbackTemplates[theme]?.[signal] || 
+                      `New feedback about ${theme} with ${signal} signal level.`;
+
+          const labels = signal === 'high' 
+            ? ['Recent feedback', 'Actionable', 'Clear signal']
+            : signal === 'medium'
+            ? ['Moderate detail', 'Needs context']
+            : ['Vague', 'Low signal'];
+
+          const newItem = {
+            id: Date.now(), // Use timestamp as ID
+            text: text,
+            source: source,
+            user_type: userType,
+            timestamp: new Date().toISOString(),
+            confidence: signal,
+            theme: theme,
+            labels: labels
+          };
+
+          // Add to feedback state (prepend so it appears at top)
+          setFeedback(prev => [newItem, ...prev]);
+          
+          // Mark as new for animation
+          setNewItemIds(prev => new Set([...prev, newItem.id]));
+          
+          // Show toast
+          setToast({
+            message: `New feedback received from ${source}`,
+            source: source
+          });
+
+          // Remove toast after 4 seconds
+          setTimeout(() => {
+            setToast(null);
+          }, 4000);
+
+          // Remove new-item class after animation completes
+          setTimeout(() => {
+            setNewItemIds(prev => {
+              const next = new Set(prev);
+              next.delete(newItem.id);
+              return next;
+            });
+          }, 500);
+        };
+
+        const scheduleFeedback = () => {
+          if (newFeedbackCountRef.current >= 2) return null;
+          
+          const delay = 10000 + Math.random() * 5000; // 10-15 seconds
+          return setTimeout(() => {
+            if (newFeedbackCountRef.current >= 2) return;
+            
+            createNewFeedback();
+            newFeedbackCountRef.current += 1;
+            setNewFeedbackCount(newFeedbackCountRef.current);
+            
+            // Schedule second occurrence if under limit
+            if (newFeedbackCountRef.current < 2) {
+              const secondDelay = 10000 + Math.random() * 5000;
+              newFeedbackTimerRef.current = setTimeout(() => {
+                if (newFeedbackCountRef.current < 2) {
+                  createNewFeedback();
+                  newFeedbackCountRef.current += 1;
+                  setNewFeedbackCount(newFeedbackCountRef.current);
+                }
+              }, secondDelay);
+            }
+          }, delay);
+        };
+
+        const timer = scheduleFeedback();
+        return () => {
+          if (timer) clearTimeout(timer);
+          if (newFeedbackTimerRef.current) clearTimeout(newFeedbackTimerRef.current);
+        };
+      }, [loading, feedback.length]);
+
+      const fetchFeedback = async () => {
+        try {
+          const res = await fetch(`${API_BASE}/api/feedback`);
+          const data = await res.json();
+          setFeedback(data);
+          setLoading(false);
+        } catch (err) {
+          console.error('Failed to fetch feedback:', err);
+          setLoading(false);
+        }
+      };
+
+
+      const handleCardClick = async (item) => {
+        // Navigate to Focus page instead of opening sidebar
+        navigate('focus', { id: item.id });
+      };
+      
+      const handleCardClickForSidebar = async (item) => {
+        setSelectedFeedback(item);
+        setExplanation(null);
+        setExplainLoading(true);
+
+        try {
+          const res = await fetch(`${API_BASE}/api/explain/${item.id}`);
+          const data = await res.json();
+          setExplanation(data);
+        } catch (err) {
+          console.error('Failed to fetch explanation:', err);
+          setExplanation({ explanation: 'Failed to load explanation.', actions: [] });
+        } finally {
+          setExplainLoading(false);
+        }
+      };
+
+      const closeSidebar = () => {
+        setSelectedFeedback(null);
+        setExplanation(null);
+      };
+
+      const toggleTheme = (theme) => {
+        setExpandedTheme(expandedTheme === theme ? null : theme);
+      };
+
+      const getSourceColor = (source) => {
+        const colors = {
+          github: 'bg-purple-600',
+          discord: 'bg-indigo-600',
+          support: 'bg-blue-600',
+          twitter: 'bg-sky-500',
+        };
+        return colors[source] || 'bg-gray-600';
+      };
+
+      const getSignalBadge = (signal) => {
+        return signal === 'high' ? 'badge-high' :
+               signal === 'medium' ? 'badge-medium' : 'badge-low';
+      };
+
+      const formatThemeName = (theme) => {
+        return theme.split('_').map(word => 
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+      };
+
+      const handleSendMessage = async () => {
+        if (!chatInput.trim() || chatLoading) return;
+
+        const userMessage = chatInput.trim();
+        setChatInput('');
+        setChatMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+        setChatLoading(true);
+
+        const feedbackSummary = {
+          themes: themesData.map(t => ({
+            theme: t.theme,
+            count: t.items.length,
+            highCount: t.highCount,
+            mediumCount: t.mediumCount,
+            lowCount: t.lowCount
+          })),
+          counts: {
+            total: feedback.length,
+            high: feedback.filter(f => f.confidence === 'high').length,
+            medium: feedback.filter(f => f.confidence === 'medium').length,
+            low: feedback.filter(f => f.confidence === 'low').length
+          },
+          topItems: topThemes.map(t => ({
+            theme: t.theme,
+            highCount: t.highCount,
+            items: t.items.slice(0, 3).map(item => ({
+              text: item.text,
+              source: item.source,
+              confidence: item.confidence
+            }))
+          }))
+        };
+
+        try {
+          const res = await fetch(`${API_BASE}/api/chat`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              question: userMessage,
+              feedbackSummary: feedbackSummary
+            })
+          });
+
+          const data = await res.json();
+          setChatMessages(prev => [...prev, { role: 'assistant', content: data.response || 'Sorry, I could not generate a response.' }]);
+        } catch (err) {
+          console.error('Failed to send chat message:', err);
+          setChatMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, there was an error processing your question. Please try again.' }]);
+        } finally {
+          setChatLoading(false);
+        }
+      };
+
+      const handleChatKeyPress = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          handleSendMessage();
+        }
+      };
+
+      // Get unique sources and themes from dataset
+      const availableSources = useMemo(() => {
+        const sources = new Set();
+        feedback.forEach(item => sources.add(item.source));
+        return Array.from(sources).sort();
+      }, [feedback]);
+
+      const availableThemes = useMemo(() => {
+        const themes = new Set();
+        feedback.forEach(item => themes.add(item.theme || 'general'));
+        return Array.from(themes).sort();
+      }, [feedback]);
+
+      // Apply all filters
+      const filteredFeedback = useMemo(() => {
+        let result = [...feedback];
+
+        // Signal level filter
+        if (filter !== 'all') {
+          result = result.filter(f => f.confidence === filter);
+        }
+
+        // Source filter
+        if (selectedSources.length > 0) {
+          result = result.filter(f => selectedSources.includes(f.source));
+        }
+
+        // Theme filter
+        if (selectedThemes.length > 0) {
+          result = result.filter(f => {
+            const theme = f.theme || 'general';
+            return selectedThemes.includes(theme);
+          });
+        }
+
+        // Search filter
+        if (searchQuery.trim()) {
+          const query = searchQuery.toLowerCase().trim();
+          result = result.filter(f => 
+            f.text.toLowerCase().includes(query) ||
+            (f.labels && f.labels.some(label => label.toLowerCase().includes(query)))
+          );
+        }
+
+        return result;
+      }, [feedback, filter, selectedSources, selectedThemes, searchQuery]);
+
+      const toggleSource = (source) => {
+        setSelectedSources(prev => 
+          prev.includes(source) 
+            ? prev.filter(s => s !== source)
+            : [...prev, source]
+        );
+      };
+
+      const toggleThemeFilter = (theme) => {
+        setSelectedThemes(prev => 
+          prev.includes(theme) 
+            ? prev.filter(t => t !== theme)
+            : [...prev, theme]
+        );
+      };
+
+      const clearFilters = () => {
+        setSearchQuery('');
+        setSelectedSources([]);
+        setSelectedThemes([]);
+        setFilter('all');
+      };
+
+      const hasActiveFilters = searchQuery.trim() || selectedSources.length > 0 || selectedThemes.length > 0 || filter !== 'all';
+
+      const confidenceCounts = {
+        all: feedback.length,
+        high: feedback.filter(f => f.confidence === 'high').length,
+        medium: feedback.filter(f => f.confidence === 'medium').length,
+        low: feedback.filter(f => f.confidence === 'low').length,
+      };
+
+      // Group feedback by theme (using filtered feedback)
+      const themesData = useMemo(() => {
+        const themeMap = {};
+        
+        filteredFeedback.forEach(item => {
+          const theme = item.theme || 'general';
+          if (!themeMap[theme]) {
+            themeMap[theme] = {
+              theme,
+              items: [],
+              highCount: 0,
+              mediumCount: 0,
+              lowCount: 0,
+              highestConfidence: 'low'
+            };
+          }
+          
+          themeMap[theme].items.push(item);
+          
+          if (item.confidence === 'high') {
+            themeMap[theme].highCount++;
+            if (themeMap[theme].highestConfidence === 'low' || themeMap[theme].highestConfidence === 'medium') {
+              themeMap[theme].highestConfidence = 'high';
+            }
+          } else if (item.confidence === 'medium') {
+            themeMap[theme].mediumCount++;
+            if (themeMap[theme].highestConfidence === 'low') {
+              themeMap[theme].highestConfidence = 'medium';
+            }
+          } else {
+            themeMap[theme].lowCount++;
+          }
+        });
+        
+        return Object.values(themeMap);
+      }, [filteredFeedback]);
+
+      // Top 3 themes by high-confidence count (using filtered feedback)
+      const topThemes = useMemo(() => {
+        return [...themesData]
+          .sort((a, b) => b.highCount - a.highCount)
+          .slice(0, 3);
+      }, [themesData]);
+
+      // Generate recommended actions from filtered feedback (prioritize high-confidence)
+      const recommendedActions = useMemo(() => {
+        const highConfidenceItems = filteredFeedback.filter(f => f.confidence === 'high');
+        const actions = [];
+        
+        topThemes.forEach(themeData => {
+          const theme = themeData.theme;
+          if (theme === 'performance') {
+            actions.push({
+              title: 'Investigate Cold Start Latency',
+              description: 'Multiple reports of 800ms+ delays affecting customer experience'
+            });
+          } else if (theme === 'dev_experience') {
+            actions.push({
+              title: 'Improve Development Workflow',
+              description: 'Prioritize hot reload support and improve wrangler dev stability'
+            });
+          } else if (theme === 'docs') {
+            actions.push({
+              title: 'Enhance Documentation',
+              description: 'Review and improve documentation for D1 bindings and common setup issues'
+            });
+          } else if (theme === 'database') {
+            actions.push({
+              title: 'Fix Database Migration Issues',
+              description: 'Address silent migration failures in production and add error handling'
+            });
+          } else if (theme === 'ai_reliability') {
+            actions.push({
+              title: 'Address AI Consistency',
+              description: 'Workers AI responses are inconsistent - critical for production use cases'
+            });
+          } else if (theme === 'debugging') {
+            actions.push({
+              title: 'Add Development Debugging',
+              description: 'Enable real-time console.log output during development'
+            });
+          }
+        });
+        
+        if (actions.length < 3) {
+          if (highConfidenceItems.length > 0) {
+            actions.push({
+              title: 'Review High-Confidence Feedback',
+              description: 'Prioritize immediate action items from high-confidence feedback'
+            });
+          }
+          if (actions.length < 3) {
+            actions.push({
+              title: 'Set Up Monitoring',
+              description: 'Track resolution of reported issues with monitoring dashboard'
+            });
+          }
+        }
+        
+        return actions.slice(0, 4);
+      }, [filteredFeedback, topThemes]);
+
+      const handleWhyClick = async (actionTitle) => {
+        // Open chat if closed
+        if (!chatOpen) {
+          setChatOpen(true);
+          // Small delay to ensure chat panel is rendered before scrolling
+          setTimeout(() => {
+            if (chatMessagesEndRef.current) {
+              chatMessagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+            }
+          }, 100);
+        }
+
+        // Auto-send message
+        const question = `Why is the action '${actionTitle}' recommended? Reference the relevant high-confidence themes/signals and cite specific examples from the feedback.`;
+        
+        setChatMessages(prev => [...prev, { role: 'user', content: question }]);
+        setChatLoading(true);
+
+        const feedbackSummary = {
+          themes: themesData.map(t => ({
+            theme: t.theme,
+            count: t.items.length,
+            highCount: t.highCount,
+            mediumCount: t.mediumCount,
+            lowCount: t.lowCount
+          })),
+          counts: {
+            total: filteredFeedback.length,
+            high: filteredFeedback.filter(f => f.confidence === 'high').length,
+            medium: filteredFeedback.filter(f => f.confidence === 'medium').length,
+            low: filteredFeedback.filter(f => f.confidence === 'low').length
+          },
+          topItems: topThemes.map(t => ({
+            theme: t.theme,
+            highCount: t.highCount,
+            items: t.items.slice(0, 3).map(item => ({
+              text: item.text,
+              source: item.source,
+              confidence: item.confidence
+            }))
+          }))
+        };
+
+        try {
+          const res = await fetch(`${API_BASE}/api/chat`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              question: question,
+              feedbackSummary: feedbackSummary
+            })
+          });
+
+          const data = await res.json();
+          setChatMessages(prev => [...prev, { role: 'assistant', content: data.response || 'Sorry, I could not generate a response.' }]);
+        } catch (err) {
+          console.error('Failed to send chat message:', err);
+          setChatMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, there was an error processing your question. Please try again.' }]);
+        } finally {
+          setChatLoading(false);
+        }
+      };
+
+      // Metrics calculations
+      const metricsData = useMemo(() => {
+        const total = feedback.length;
+        const highCount = feedback.filter(f => f.confidence === 'high').length;
+        const mediumCount = feedback.filter(f => f.confidence === 'medium').length;
+        const lowCount = feedback.filter(f => f.confidence === 'low').length;
+        
+        // Volume by theme
+        const themeVolume = {};
+        feedback.forEach(item => {
+          const theme = item.theme || 'general';
+          themeVolume[theme] = (themeVolume[theme] || 0) + 1;
+        });
+        
+        // Volume by source
+        const sourceVolume = {};
+        feedback.forEach(item => {
+          sourceVolume[item.source] = (sourceVolume[item.source] || 0) + 1;
+        });
+        
+        // Top theme
+        const topTheme = Object.entries(themeVolume)
+          .sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
+        
+        // Most active source
+        const mostActiveSource = Object.entries(sourceVolume)
+          .sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
+        
+        // Trend over time (bucket by day)
+        const trendData = {};
+        feedback.forEach(item => {
+          const date = new Date(item.timestamp).toISOString().split('T')[0];
+          trendData[date] = (trendData[date] || 0) + 1;
+        });
+        
+        // Insights
+        const performanceDeploymentsHigh = feedback.filter(f => 
+          (f.theme === 'performance' || f.theme === 'deployments') && f.confidence === 'high'
+        ).length;
+        const githubHigh = feedback.filter(f => f.source === 'github' && f.confidence === 'high').length;
+        const twitterHigh = feedback.filter(f => f.source === 'twitter' && f.confidence === 'high').length;
+        const docsVolume = feedback.filter(f => f.theme === 'docs').length;
+        const docsMedium = feedback.filter(f => f.theme === 'docs' && f.confidence === 'medium').length;
+        
+        const insights = [];
+        if (performanceDeploymentsHigh > 0) {
+          const pct = Math.round((performanceDeploymentsHigh / highCount) * 100);
+          insights.push(`Performance + Deployments account for ${pct}% of High signal items.`);
+        }
+        if (githubHigh > twitterHigh) {
+          insights.push(`GitHub issues skew higher signal than Twitter.`);
+        }
+        if (docsVolume > 0) {
+          const pct = Math.round((docsMedium / docsVolume) * 100);
+          insights.push(`Docs feedback is high volume but mostly medium signal (${pct}%).`);
+        }
+        
+        return {
+          total,
+          highCount,
+          mediumCount,
+          lowCount,
+          themeVolume,
+          sourceVolume,
+          topTheme,
+          mostActiveSource,
+          trendData,
+          insights: insights.slice(0, 3)
+        };
+      }, [feedback]);
+
+      // Explorer filtered feedback
+      const explorerFiltered = useMemo(() => {
+        let result = [...feedback];
+        
+        if (explorerSearch.trim()) {
+          const query = explorerSearch.toLowerCase();
+          result = result.filter(f => 
+            f.text.toLowerCase().includes(query) ||
+            (f.labels && f.labels.some(l => l.toLowerCase().includes(query)))
+          );
+        }
+        
+        if (explorerSources.length > 0) {
+          result = result.filter(f => explorerSources.includes(f.source));
+        }
+        
+        if (explorerThemes.length > 0) {
+          result = result.filter(f => {
+            const theme = f.theme || 'general';
+            return explorerThemes.includes(theme);
+          });
+        }
+        
+        if (explorerSignal !== 'all') {
+          result = result.filter(f => f.confidence === explorerSignal);
+        }
+        
+        // Sort
+        if (explorerSort === 'newest') {
+          result.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        } else if (explorerSort === 'highest') {
+          const order = { high: 3, medium: 2, low: 1 };
+          result.sort((a, b) => order[b.confidence] - order[a.confidence]);
+        }
+        
+        return result;
+      }, [feedback, explorerSearch, explorerSources, explorerThemes, explorerSignal, explorerSort]);
+
+      if (loading) {
+        return (
+          <div className="flex items-center justify-center h-screen">
+            <div className="loading text-lg" style={{ color: 'var(--muted-foreground)' }}>Loading feedback...</div>
+          </div>
+        );
+      }
+
+      const currentView = expandedTheme 
+        ? themesData.find(t => t.theme === expandedTheme)?.items || []
+        : null;
+
+      const navigate = (route, params = {}) => {
+        if (route === 'focus' && params.id) {
+          window.location.hash = `focus?id=${params.id}`;
+          setCurrentRoute('focus');
+          setFocusFeedbackId(params.id);
+          const saved = localStorage.getItem(`pm_notes_${params.id}`);
+          setPmNotes(saved || '');
+        } else {
+          window.location.hash = route;
+          setCurrentRoute(route);
+        }
+        // Reset theme expansion when navigating
+        if (expandedTheme) setExpandedTheme(null);
+      };
+      
+      const navigateToExplorer = (theme = null, signalLens = null) => {
+        let hash = 'explorer';
+        const params = [];
+        if (theme) params.push(`theme=${encodeURIComponent(theme)}`);
+        if (signalLens && signalLens !== 'all') params.push(`signal=${signalLens}`);
+        if (params.length > 0) hash += '?' + params.join('&');
+        window.location.hash = hash;
+        // State will be set by hash change handler
+      };
+
+      return (
+        <div className="min-h-screen" style={{ background: 'var(--background)' }}>
+          {/* Header */}
+          <header className="sticky top-0 z-40 border-b bg-white" style={{ borderColor: 'var(--border)', boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
+            <div className="max-w-7xl mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-6">
+              <div>
+                    <h1 className="text-xl font-semibold" style={{ color: 'var(--foreground)' }}>
+                      <span style={{ color: 'var(--accent)' }}>Signal</span>
+                      <span className="text-sm font-normal ml-2" style={{ color: 'var(--muted-foreground)' }}>
+                        Feedback signal engine for product teams
+                      </span>
+                </h1>
+              </div>
+              
+              {/* Navigation Tabs */}
+              <nav className="tabs" style={{ marginLeft: '24px' }}>
+                <button
+                  onClick={() => navigate('home')}
+                  className={`tab ${currentRoute === 'home' ? 'tab-active' : ''}`}
+                  style={currentRoute === 'home' ? { color: 'var(--accent)', fontWeight: 600 } : {}}
+                >
+                  Home
+                </button>
+                <button
+                  onClick={() => navigate('explorer')}
+                  className={`tab ${currentRoute === 'explorer' ? 'tab-active' : ''}`}
+                  style={currentRoute === 'explorer' ? { color: 'var(--accent)', fontWeight: 600 } : {}}
+                >
+                  Explorer
+                </button>
+              </nav>
+              </div>
+              
+                <div className="flex items-center gap-3">
+                  {expandedTheme && currentRoute === 'home' && (
+                    <button
+                      onClick={() => setExpandedTheme(null)}
+                      className="btn btn-secondary"
+                    >
+                      ← Back to Themes
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setChatOpen(!chatOpen)}
+                    className="btn btn-ghost"
+                    style={{ padding: '8px 12px', fontSize: '14px' }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                    </svg>
+                    AI Assistant
+                  </button>
+          </div>
+              </div>
+            </div>
+          </header>
+
+          {/* Signal Lens Selector - Only for Home */}
+          {currentRoute === 'home' && (
+            <div className="border-b bg-white" style={{ borderColor: 'var(--border)' }}>
+              <div className="max-w-7xl mx-auto px-6 py-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium" style={{ color: 'var(--muted-foreground)', marginRight: '8px' }}>
+                    Signal Lens:
+                  </span>
+                  <div className="tabs">
+                <button 
+                  onClick={() => setFilter('all')}
+                      className={`tab ${filter === 'all' ? 'tab-active' : ''}`}
+                    >
+                      All ({confidenceCounts.all})
+                </button>
+                <button 
+                  onClick={() => setFilter('high')}
+                      className={`tab ${filter === 'high' ? 'tab-active' : ''}`}
+                    >
+                      High Signal ({confidenceCounts.high})
+                </button>
+                <button 
+                  onClick={() => setFilter('medium')}
+                      className={`tab ${filter === 'medium' ? 'tab-active' : ''}`}
+                    >
+                      Medium Signal ({confidenceCounts.medium})
+                </button>
+                <button 
+                  onClick={() => setFilter('low')}
+                      className={`tab ${filter === 'low' ? 'tab-active' : ''}`}
+                    >
+                      Low Signal ({confidenceCounts.low})
+                </button>
+              </div>
+            </div>
+          </div>
+            </div>
+          )}
+
+          <main className="max-w-7xl mx-auto px-6 py-8">
+            {currentRoute === 'home' && (
+              <div>
+            {/* Executive Summary */}
+            <div className="mb-8 space-y-6">
+              {/* Key Metrics */}
+              <div className="executive-card p-6">
+                <h2 className="text-3xl font-semibold mb-6" style={{ color: 'var(--foreground)' }}>
+                  Executive Summary
+                </h2>
+                
+                {/* Context-aware Key Numbers */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="metric-card">
+                    <div className="text-sm font-medium mb-2" style={{ color: 'var(--muted-foreground)' }}>
+                      {filter === 'all' ? 'Total Items' : `${filter === 'high' ? 'High' : filter === 'medium' ? 'Medium' : 'Low'} Signal Items`}
+                    </div>
+                    <div className="text-3xl font-bold mb-2" style={{ 
+                      color: filter === 'high' ? 'var(--high-signal)' : 
+                             filter === 'medium' ? 'var(--medium-signal)' : 
+                             filter === 'low' ? 'var(--low-signal)' : 
+                             'var(--foreground)' 
+                    }}>
+                      {filteredFeedback.length}
+                    </div>
+                    {filter !== 'all' && (
+                      <div className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                        {Math.round((filteredFeedback.length / feedback.length) * 100)}% of total
+                      </div>
+                    )}
+                  </div>
+                  
+                  {filter === 'all' ? (
+                    <div className="metric-card">
+                      <div className="text-sm font-medium mb-2" style={{ color: 'var(--muted-foreground)' }}>
+                        High Signal
+                      </div>
+                      <div className="text-3xl font-bold mb-2 number-high">
+                        {filteredFeedback.length > 0 ? Math.round((filteredFeedback.filter(f => f.confidence === 'high').length / filteredFeedback.length) * 100) : 0}%
+                      </div>
+                      <div className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                        {filteredFeedback.filter(f => f.confidence === 'high').length} items
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="metric-card">
+                      <div className="text-sm font-medium mb-2" style={{ color: 'var(--muted-foreground)' }}>
+                        Total Items
+                      </div>
+                      <div className="text-3xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
+                        {feedback.length}
+                      </div>
+                      <div className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                        All feedback
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="metric-card">
+                    <div className="text-sm font-medium mb-2" style={{ color: 'var(--muted-foreground)' }}>
+                      Top Theme
+                    </div>
+                    <div className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
+                      {topThemes[0] ? formatThemeName(topThemes[0].theme) : 'N/A'}
+                    </div>
+                    <div className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                      {filter === 'all' ? (
+                        `${topThemes[0]?.highCount || 0} high signal items`
+                      ) : filter === 'high' ? (
+                        `${topThemes[0]?.highCount || 0} items`
+                      ) : filter === 'medium' ? (
+                        `${topThemes[0]?.mediumCount || 0} items`
+                      ) : (
+                        `${topThemes[0]?.lowCount || 0} items`
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="separator"></div>
+
+                {/* Top Themes - Context-aware */}
+                {topThemes.length > 0 && topThemes.some(t => 
+                  filter === 'all' ? t.highCount > 0 : 
+                  filter === 'high' ? t.highCount > 0 :
+                  filter === 'medium' ? t.mediumCount > 0 :
+                  t.lowCount > 0
+                ) ? (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-medium mb-4" style={{ color: 'var(--foreground)' }}>
+                      Top Themes in {filter === 'all' ? 'All' : filter === 'high' ? 'High Signal' : filter === 'medium' ? 'Medium Signal' : 'Low Signal'}
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {topThemes.filter(t => 
+                        filter === 'all' ? t.highCount > 0 : 
+                        filter === 'high' ? t.highCount > 0 :
+                        filter === 'medium' ? t.mediumCount > 0 :
+                        t.lowCount > 0
+                      ).slice(0, 3).map((themeData, idx) => {
+                        const count = filter === 'all' ? themeData.highCount :
+                                     filter === 'high' ? themeData.highCount :
+                                     filter === 'medium' ? themeData.mediumCount :
+                                     themeData.lowCount;
+                        const confidenceClass = themeData.highCount > 0 ? 'theme-stat-card-high' : 
+                                               themeData.mediumCount > 0 ? 'theme-stat-card-medium' : 
+                                               'theme-stat-card-low';
+                        const numberClass = themeData.highCount > 0 ? 'number-high' : 
+                                           themeData.mediumCount > 0 ? 'number-medium' : 
+                                           'number-low';
+              return (
+                          <div key={idx} className={`theme-stat-card p-4 ${confidenceClass}`}>
+                            <div className="text-sm font-medium mb-2" style={{ color: 'var(--muted-foreground)' }}>
+                              {formatThemeName(themeData.theme)}
+                            </div>
+                            <div className={`text-3xl font-bold mb-1 ${numberClass}`}>
+                              {count}
+                            </div>
+                            <div className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                              {filter === 'all' ? 'high signal' : filter === 'high' ? 'high signal' : filter === 'medium' ? 'medium signal' : 'low signal'} {count === 1 ? 'item' : 'items'}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mb-6 p-4" style={{ background: 'var(--muted)', borderRadius: '8px' }}>
+                    <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                      No themes found for the selected signal lens.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Insights Box */}
+            <div className="card p-6 mb-6">
+              <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--foreground)' }}>
+                Insights
+              </h3>
+              <div className="space-y-2">
+                {(() => {
+                  // Most active source with percentage
+                  const sourceCounts = {};
+                  filteredFeedback.forEach(item => {
+                    sourceCounts[item.source] = (sourceCounts[item.source] || 0) + 1;
+                  });
+                  const mostActiveSource = Object.entries(sourceCounts).sort((a, b) => b[1] - a[1])[0];
+                  const sourcePct = mostActiveSource ? Math.round((mostActiveSource[1] / filteredFeedback.length) * 100) : 0;
+                  return mostActiveSource && (
+                    <div className="flex items-start gap-2">
+                      <span style={{ color: 'var(--accent)', marginTop: '2px' }}>•</span>
+                      <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                        Most active source is <strong>{mostActiveSource[0]}</strong> with {mostActiveSource[1]} items ({sourcePct}% of total).
+                      </p>
+                    </div>
+                  );
+                })()}
+                {(() => {
+                  // Second-largest theme
+                  const sortedThemes = [...themesData].sort((a, b) => {
+                    const aCount = filter === 'all' ? a.highCount : filter === 'high' ? a.highCount : filter === 'medium' ? a.mediumCount : a.lowCount;
+                    const bCount = filter === 'all' ? b.highCount : filter === 'high' ? b.highCount : filter === 'medium' ? b.mediumCount : b.lowCount;
+                    return bCount - aCount;
+                  });
+                  if (sortedThemes.length > 1 && sortedThemes[1]) {
+                    const secondTheme = sortedThemes[1];
+                    const secondCount = filter === 'all' ? secondTheme.highCount : filter === 'high' ? secondTheme.highCount : filter === 'medium' ? secondTheme.mediumCount : secondTheme.lowCount;
+                    if (secondCount > 0) {
+                      return (
+                        <div className="flex items-start gap-2">
+                          <span style={{ color: 'var(--accent)', marginTop: '2px' }}>•</span>
+                          <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                            Second-largest theme is <strong>{formatThemeName(secondTheme.theme)}</strong> with {secondCount} {filter === 'all' ? 'high signal' : filter === 'high' ? 'high signal' : filter === 'medium' ? 'medium signal' : 'low signal'} items.
+                          </p>
+                        </div>
+                      );
+                    }
+                  }
+                  return null;
+                })()}
+                {filter === 'all' && (() => {
+                  // High signal concentration
+                  const highItems = filteredFeedback.filter(f => f.confidence === 'high');
+                  if (highItems.length > 0) {
+                    const highThemes = {};
+                    highItems.forEach(item => {
+                      const theme = item.theme || 'general';
+                      highThemes[theme] = (highThemes[theme] || 0) + 1;
+                    });
+                    const topHighThemes = Object.entries(highThemes).sort((a, b) => b[1] - a[1]).slice(0, 2);
+                    if (topHighThemes.length >= 2) {
+                      const combinedCount = topHighThemes[0][1] + topHighThemes[1][1];
+                      const combinedPct = Math.round((combinedCount / highItems.length) * 100);
+                      return (
+                        <div className="flex items-start gap-2">
+                          <span style={{ color: 'var(--accent)', marginTop: '2px' }}>•</span>
+                          <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                            High Signal is concentrated in themes <strong>{topHighThemes.map(([t]) => formatThemeName(t)).join(' / ')}</strong> ({combinedPct}% of high signal).
+                          </p>
+                        </div>
+                      );
+                    }
+                  }
+                  // Fallback: Suggested focus based on high-signal density
+                  const themeDensities = themesData.map(t => {
+                    const highCount = t.highCount;
+                    const total = t.items.length;
+                    return {
+                      theme: t.theme,
+                      density: total > 0 ? highCount / total : 0,
+                      highCount,
+                      total
+                    };
+                  }).filter(t => t.total > 0 && t.highCount > 0).sort((a, b) => b.density - a.density);
+                  if (themeDensities.length > 0) {
+                    const topDensity = themeDensities[0];
+                    const densityPct = Math.round(topDensity.density * 100);
+                    return (
+                      <div className="flex items-start gap-2">
+                        <span style={{ color: 'var(--accent)', marginTop: '2px' }}>•</span>
+                        <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                          Suggested focus: Start with theme <strong>{formatThemeName(topDensity.theme)}</strong> because it has highest high-signal density ({densityPct}%).
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+                {filter === 'low' && (() => {
+                  // Noisiest area (low signal)
+                  const lowItems = filteredFeedback.filter(f => f.confidence === 'low');
+                  if (lowItems.length > 0) {
+                    const lowThemes = {};
+                    lowItems.forEach(item => {
+                      const theme = item.theme || 'general';
+                      lowThemes[theme] = (lowThemes[theme] || 0) + 1;
+                    });
+                    const noisiestTheme = Object.entries(lowThemes).sort((a, b) => b[1] - a[1])[0];
+                    if (noisiestTheme) {
+                      return (
+                        <div className="flex items-start gap-2">
+                          <span style={{ color: 'var(--accent)', marginTop: '2px' }}>•</span>
+                          <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                            Noisiest area (low signal) is <strong>{formatThemeName(noisiestTheme[0])}</strong> with {noisiestTheme[1]} items.
+                          </p>
+                        </div>
+                      );
+                    }
+                  }
+                  return null;
+                })()}
+              </div>
+            </div>
+
+                {/* Recommended Actions */}
+                <div className="card p-6">
+                  <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
+                    Recommended Actions
+                  </h3>
+                  <p className="text-xs mb-4" style={{ color: 'var(--muted-foreground)' }}>
+                    Signal reflects how actionable feedback is based on repetition, specificity, and source diversity.
+                  </p>
+                  <div className="space-y-3">
+                    {recommendedActions.map((action, idx) => (
+                      <div key={idx} className="action-item">
+                        <div className="action-icon">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium mb-1" style={{ color: 'var(--foreground)' }}>
+                            {action.title}
+                          </p>
+                          <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                            {action.description}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleWhyClick(action.title)}
+                            className="text-xs"
+                  style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: 'var(--accent)',
+                              cursor: 'pointer',
+                              padding: '6px 8px',
+                              textDecoration: 'underline',
+                              textUnderlineOffset: '2px',
+                              transition: 'opacity 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.7'}
+                            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                            title="Get AI explanation for this action"
+                          >
+                            Why?
+                          </button>
+                          <button 
+                            disabled
+                            className="btn btn-ghost text-xs"
+                            style={{ cursor: 'not-allowed', opacity: 0.5 }}
+                            title="Would create Jira ticket in production"
+                          >
+                            Create Ticket
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  </div>
+                  
+                {/* Theme Cards Grid */}
+                <div style={{ marginTop: '32px' }}>
+                  <h2 className="text-2xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
+                    Themes
+                  </h2>
+                  <p className="text-sm mb-6" style={{ color: 'var(--muted-foreground)' }}>
+                    Click a theme to explore the matching feedback in Explorer.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {themesData.map((themeData) => {
+                      const cardClass = themeData.highestConfidence === 'high' ? 'card-high' :
+                                       themeData.highestConfidence === 'medium' ? 'card-medium' : 'card-low';
+                      const isNewTheme = themeData.items.some(item => newItemIds.has(item.id));
+                      return (
+                        <div
+                          key={themeData.theme}
+                          onClick={() => navigateToExplorer(themeData.theme, filter)}
+                          className={`card card-hover p-5 cursor-pointer hover-lift ${cardClass} ${isNewTheme ? 'new-item' : ''}`}
+                        >
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-semibold" style={{ color: 'var(--foreground)' }}>
+                              {formatThemeName(themeData.theme)}
+                            </h3>
+                            <span className={`badge ${getSignalBadge(themeData.highestConfidence)}`}>
+                              {themeData.highestConfidence === 'high' ? 'High' : themeData.highestConfidence === 'medium' ? 'Medium' : 'Low'} Signal
+                      </span>
+                          </div>
+                          
+                          <div className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
+                            {themeData.items.length}
+                          </div>
+                          <div className="text-xs mb-4" style={{ color: 'var(--muted-foreground)' }}>
+                            {themeData.highCount > 0 && `High ${themeData.highCount}`}
+                            {themeData.highCount > 0 && (themeData.mediumCount > 0 || themeData.lowCount > 0) && ' • '}
+                            {themeData.mediumCount > 0 && `Med ${themeData.mediumCount}`}
+                            {(themeData.highCount > 0 || themeData.mediumCount > 0) && themeData.lowCount > 0 && ' • '}
+                            {themeData.lowCount > 0 && `Low ${themeData.lowCount}`}
+                            {themeData.items.length === 0 && 'No items'}
+                  </div>
+                </div>
+              );
+            })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentRoute === 'explorer' && (
+              <ExplorerView
+                feedback={explorerFiltered}
+                allFeedback={feedback}
+                availableSources={availableSources}
+                availableThemes={availableThemes}
+                explorerSearch={explorerSearch}
+                setExplorerSearch={setExplorerSearch}
+                explorerSources={explorerSources}
+                setExplorerSources={setExplorerSources}
+                explorerThemes={explorerThemes}
+                setExplorerThemes={setExplorerThemes}
+                explorerSignal={explorerSignal}
+                setExplorerSignal={setExplorerSignal}
+                explorerSort={explorerSort}
+                setExplorerSort={setExplorerSort}
+                explorerChatScope={explorerChatScope}
+                setExplorerChatScope={setExplorerChatScope}
+                navigate={navigate}
+                formatThemeName={formatThemeName}
+                getSignalBadge={getSignalBadge}
+                chatOpen={chatOpen}
+                setChatOpen={setChatOpen}
+                chatMessages={chatMessages}
+                setChatMessages={setChatMessages}
+                chatInput={chatInput}
+                setChatInput={setChatInput}
+                chatLoading={chatLoading}
+                setChatLoading={setChatLoading}
+                chatMessagesEndRef={chatMessagesEndRef}
+                handleChatKeyPress={handleChatKeyPress}
+                API_BASE={API_BASE}
+                themesData={themesData}
+                topThemes={topThemes}
+              />
+            )}
+
+            {currentRoute === 'focus' && focusFeedbackId && (
+              <FocusView
+                feedbackId={focusFeedbackId}
+                feedback={feedback.find(f => f.id === focusFeedbackId)}
+                pmNotes={pmNotes}
+                setPmNotes={setPmNotes}
+                focusAiResponse={focusAiResponse}
+                setFocusAiResponse={setFocusAiResponse}
+                focusAiLoading={focusAiLoading}
+                setFocusAiLoading={setFocusAiLoading}
+                navigate={navigate}
+                formatThemeName={formatThemeName}
+                getSignalBadge={getSignalBadge}
+                API_BASE={API_BASE}
+              />
+            )}
+          </main>
+
+          {/* Toast Notification */}
+          {toast && (
+            <div className="toast">
+              <div className="toast-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="toast-content">
+                {toast.message}
+              </div>
+            </div>
+          )}
+
+          {/* Chat Panel */}
+          <div className={`sheet ${chatOpen ? '' : 'closed'}`}>
+            <div className="flex flex-col h-full">
+              {/* Chat Header */}
+              <div className="sheet-header flex items-center justify-between p-4">
+                <div>
+                  <h2 className="text-sm font-semibold" style={{ color: 'var(--muted-foreground)' }}>
+                    AI Assistant
+                  </h2>
+                  {currentRoute === 'explorer' && explorerChatScope && (
+                    <p className="text-xs mt-1" style={{ color: 'var(--accent)' }}>
+                      Scoped to Explorer filters
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => setChatOpen(false)}
+                  className="btn btn-ghost"
+                  style={{ padding: '4px 8px' }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Chat Messages */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {chatMessages.length === 0 ? (
+                  <div className="text-center mt-8">
+                    <p className="text-lg mb-2" style={{ color: 'var(--foreground)' }}>👋 Hello!</p>
+                    <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                      I'm your AI Feedback Assistant. Ask me questions about your feedback data, themes, or recommendations.
+                    </p>
+                  </div>
+                ) : (
+                  chatMessages.map((msg, idx) => (
+                    <div
+                      key={idx}
+                      className={`message-bubble ${msg.role === 'user' ? 'message-user' : 'message-ai'}`}
+                    >
+                      {msg.content}
+                    </div>
+                  ))
+                )}
+                {chatLoading && (
+                  <div className="message-bubble message-ai">
+                    <div className="loading text-sm">AI is thinking...</div>
+                  </div>
+                )}
+                <div ref={chatMessagesEndRef} />
+              </div>
+
+              {/* Chat Input */}
+              <div className="p-4 border-t" style={{ borderColor: 'var(--border)' }}>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyPress={handleChatKeyPress}
+                    placeholder="Ask me about this feedback..."
+                    className="input"
+                    disabled={chatLoading}
+                  />
+                  <button
+                    onClick={handleSendMessage}
+                    disabled={!chatInput.trim() || chatLoading}
+                    className="btn btn-primary"
+                    style={{ minWidth: '80px' }}
+                  >
+                    Send
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          {selectedFeedback && !chatOpen && (
+            <div className="sheet" style={{ width: '400px' }}>
+              <div className="flex flex-col h-full">
+                <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: 'var(--border)' }}>
+                  <h2 className="text-lg font-semibold" style={{ color: 'var(--foreground)' }}>
+                    Feedback Details
+                  </h2>
+              <button 
+                onClick={closeSidebar}
+                    className="btn btn-ghost"
+                    style={{ padding: '4px 8px' }}
+              >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+              </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="badge badge-source">
+                    {selectedFeedback.source}
+                  </span>
+                    <span className={`badge ${getSignalBadge(selectedFeedback.confidence)}`}>
+                      {selectedFeedback.confidence.toUpperCase()} SIGNAL
+                  </span>
+                </div>
+
+                  <h3 className="text-lg font-semibold mb-3" style={{ color: 'var(--foreground)' }}>
+                    Full Feedback
+                  </h3>
+                  <p className="text-sm mb-6 leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
+                  {selectedFeedback.text}
+                </p>
+
+                <div className="mb-6">
+                    <h4 className="text-xs font-semibold mb-2 uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>
+                      Theme
+                    </h4>
+                    <div className="badge badge-source">
+                      {formatThemeName(selectedFeedback.theme)}
+                    </div>
+                  </div>
+
+                  <div className="mb-6">
+                    <h4 className="text-xs font-semibold mb-2 uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>
+                      Labels
+                    </h4>
+                  <div className="flex flex-wrap gap-2">
+                      {selectedFeedback.labels && selectedFeedback.labels.map((label, i) => (
+                        <span key={i} className="badge badge-source">
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                  <div className="separator"></div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3" style={{ color: 'var(--foreground)' }}>
+                    Why {selectedFeedback.confidence} signal?
+                  </h3>
+                  
+                  {explainLoading ? (
+                      <div className="loading text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                        Analyzing feedback...
+                      </div>
+                  ) : explanation ? (
+                    <>
+                        <p className="text-sm mb-6 leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
+                        {explanation.explanation}
+                      </p>
+
+                      {explanation.actions && explanation.actions.length > 0 && (
+                        <>
+                            <h3 className="text-lg font-semibold mb-3" style={{ color: 'var(--foreground)' }}>
+                            Recommended Actions
+                          </h3>
+                          <ul className="space-y-2 mb-6">
+                            {explanation.actions.map((action, i) => (
+                                <li key={i} className="flex items-start gap-2">
+                                  <span style={{ color: 'var(--accent)', marginTop: '2px' }}>→</span>
+                                  <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                                    {action}
+                                  </span>
+                              </li>
+                            ))}
+                          </ul>
+
+                          <button 
+                            disabled
+                              className="btn btn-secondary w-full"
+                              style={{ cursor: 'not-allowed', opacity: 0.5 }}
+                            title="Would create Jira ticket in production"
+                          >
+                            Create Ticket (Demo Mode)
+                          </button>
+                        </>
+                      )}
+                    </>
+                  ) : null}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Metrics View Component
+    function MetricsView({ metricsData, formatThemeName }) {
+      const maxThemeVolume = Math.max(...Object.values(metricsData.themeVolume), 1);
+      const maxSourceVolume = Math.max(...Object.values(metricsData.sourceVolume), 1);
+      const themeEntries = Object.entries(metricsData.themeVolume).sort((a, b) => b[1] - a[1]).slice(0, 8);
+      const sourceEntries = Object.entries(metricsData.sourceVolume).sort((a, b) => b[1] - a[1]);
+      
+      // Simple bar chart component
+      const BarChart = ({ data, maxValue, width = 400, height = 200 }) => {
+        const barWidth = width / data.length - 8;
+        const maxBarHeight = height - 40;
+        return (
+          <svg width={width} height={height} style={{ overflow: 'visible' }}>
+            {data.map(([label, value], idx) => {
+              const barHeight = (value / maxValue) * maxBarHeight;
+              const x = idx * (barWidth + 8) + 4;
+              const y = height - 20 - barHeight;
+              return (
+                <g key={label}>
+                  <rect
+                    x={x}
+                    y={y}
+                    width={barWidth}
+                    height={barHeight}
+                    fill="var(--accent)"
+                    rx={4}
+                  />
+                  <text
+                    x={x + barWidth / 2}
+                    y={height - 5}
+                    textAnchor="middle"
+                    fontSize="10"
+                    fill="var(--muted-foreground)"
+                  >
+                    {label.length > 8 ? label.substring(0, 8) + '...' : label}
+                  </text>
+                  <text
+                    x={x + barWidth / 2}
+                    y={y - 5}
+                    textAnchor="middle"
+                    fontSize="11"
+                    fontWeight="600"
+                    fill="var(--foreground)"
+                  >
+                    {value}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
+        );
+      };
+
+      // Donut chart component
+      const DonutChart = ({ high, medium, low, size = 150 }) => {
+        const total = high + medium + low;
+        const radius = size / 2 - 10;
+        const circumference = 2 * Math.PI * radius;
+        const highPercent = total > 0 ? high / total : 0;
+        const mediumPercent = total > 0 ? medium / total : 0;
+        const lowPercent = total > 0 ? low / total : 0;
+        
+        const highOffset = circumference * (1 - highPercent);
+        const mediumOffset = circumference * (1 - highPercent - mediumPercent);
+        
+        return (
+          <div style={{ position: 'relative', width: size, height: size }}>
+            <svg width={size} height={size}>
+              <circle
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                fill="none"
+                stroke="var(--muted)"
+                strokeWidth="20"
+              />
+              <circle
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                fill="none"
+                stroke="var(--high-signal)"
+                strokeWidth="20"
+                strokeDasharray={circumference}
+                strokeDashoffset={highOffset}
+                transform={`rotate(-90 ${size / 2} ${size / 2})`}
+              />
+              <circle
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                fill="none"
+                stroke="var(--medium-signal)"
+                strokeWidth="20"
+                strokeDasharray={circumference}
+                strokeDashoffset={mediumOffset}
+                transform={`rotate(-90 ${size / 2} ${size / 2})`}
+              />
+            </svg>
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--foreground)' }}>
+                {total}
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--muted-foreground)' }}>
+                Total
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      return (
+        <div className="space-y-6">
+          {/* KPI Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="metric-card">
+              <div className="text-sm font-medium mb-2" style={{ color: 'var(--muted-foreground)' }}>
+                Total Feedback
+              </div>
+              <div className="text-3xl font-bold" style={{ color: 'var(--foreground)' }}>
+                {metricsData.total}
+              </div>
+            </div>
+            <div className="metric-card">
+              <div className="text-sm font-medium mb-2" style={{ color: 'var(--muted-foreground)' }}>
+                High Signal
+              </div>
+              <div className="text-3xl font-bold number-high">
+                {metricsData.highCount}
+              </div>
+            </div>
+            <div className="metric-card">
+              <div className="text-sm font-medium mb-2" style={{ color: 'var(--muted-foreground)' }}>
+                Top Theme
+              </div>
+              <div className="text-xl font-semibold" style={{ color: 'var(--foreground)' }}>
+                {formatThemeName(metricsData.topTheme)}
+              </div>
+            </div>
+            <div className="metric-card">
+              <div className="text-sm font-medium mb-2" style={{ color: 'var(--muted-foreground)' }}>
+                Most Active Source
+              </div>
+              <div className="text-xl font-semibold capitalize" style={{ color: 'var(--foreground)' }}>
+                {metricsData.mostActiveSource}
+              </div>
+            </div>
+          </div>
+
+          {/* Charts Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Volume by Theme */}
+            <div className="card p-6">
+              <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--foreground)' }}>
+                Volume by Theme
+              </h3>
+              <div style={{ overflowX: 'auto' }}>
+                <BarChart data={themeEntries} maxValue={maxThemeVolume} width={600} height={200} />
+              </div>
+            </div>
+
+            {/* Volume by Source */}
+            <div className="card p-6">
+              <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--foreground)' }}>
+                Volume by Source
+              </h3>
+              <div style={{ overflowX: 'auto' }}>
+                <BarChart data={sourceEntries} maxValue={maxSourceVolume} width={400} height={200} />
+              </div>
+            </div>
+          </div>
+
+          {/* Signal Distribution and Insights */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Signal Distribution */}
+            <div className="card p-6">
+              <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--foreground)' }}>
+                Signal Distribution
+              </h3>
+              <div className="flex items-center justify-center gap-8">
+                <DonutChart high={metricsData.highCount} medium={metricsData.mediumCount} low={metricsData.lowCount} />
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: 'var(--high-signal)' }}></div>
+                    <div>
+                      <div className="font-semibold" style={{ color: 'var(--foreground)' }}>High</div>
+                      <div className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                        {metricsData.highCount} items ({Math.round((metricsData.highCount / metricsData.total) * 100)}%)
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: 'var(--medium-signal)' }}></div>
+                    <div>
+                      <div className="font-semibold" style={{ color: 'var(--foreground)' }}>Medium</div>
+                      <div className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                        {metricsData.mediumCount} items ({Math.round((metricsData.mediumCount / metricsData.total) * 100)}%)
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: 'var(--low-signal)' }}></div>
+                    <div>
+                      <div className="font-semibold" style={{ color: 'var(--foreground)' }}>Low</div>
+                      <div className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                        {metricsData.lowCount} items ({Math.round((metricsData.lowCount / metricsData.total) * 100)}%)
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Insights */}
+            <div className="card p-6">
+              <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--foreground)' }}>
+                Insights
+              </h3>
+              <div className="space-y-3">
+                {metricsData.insights.length > 0 ? (
+                  metricsData.insights.map((insight, idx) => (
+                    <div key={idx} className="flex items-start gap-3">
+                      <span style={{ color: 'var(--accent)', marginTop: '2px' }}>•</span>
+                      <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                        {insight}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                    No insights available.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Explorer View Component
+    function ExplorerView({
+      feedback,
+      allFeedback,
+      availableSources,
+      availableThemes,
+      explorerSearch,
+      setExplorerSearch,
+      explorerSources,
+      setExplorerSources,
+      explorerThemes,
+      setExplorerThemes,
+      explorerSignal,
+      setExplorerSignal,
+      explorerSort,
+      setExplorerSort,
+      explorerChatScope,
+      setExplorerChatScope,
+      navigate,
+      formatThemeName,
+      getSignalBadge,
+      chatOpen,
+      setChatOpen,
+      chatMessages,
+      setChatMessages,
+      chatInput,
+      setChatInput,
+      chatLoading,
+      setChatLoading,
+      chatMessagesEndRef,
+      handleChatKeyPress,
+      API_BASE,
+      themesData,
+      topThemes
+    }) {
+      const toggleExplorerSource = (source) => {
+        setExplorerSources(prev => 
+          prev.includes(source) ? prev.filter(s => s !== source) : [...prev, source]
+        );
+      };
+
+      const toggleExplorerTheme = (theme) => {
+        setExplorerThemes(prev => 
+          prev.includes(theme) ? prev.filter(t => t !== theme) : [...prev, theme]
+        );
+      };
+
+      const clearExplorerFilters = () => {
+        setExplorerSearch('');
+        setExplorerSources([]);
+        setExplorerThemes([]);
+        setExplorerSignal('all');
+      };
+
+      const handleScopedChatSend = async () => {
+        if (!chatInput.trim() || chatLoading) return;
+
+        const userMessage = chatInput.trim();
+        setChatInput('');
+        setChatMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+        setChatLoading(true);
+
+        // Use scoped feedback (limited to 40 items)
+        const scopedFeedback = feedback.slice(0, 40);
+        const scopedThemes = {};
+        scopedFeedback.forEach(item => {
+          const theme = item.theme || 'general';
+          if (!scopedThemes[theme]) {
+            scopedThemes[theme] = { items: [], highCount: 0, mediumCount: 0, lowCount: 0 };
+          }
+          scopedThemes[theme].items.push(item);
+          if (item.confidence === 'high') scopedThemes[theme].highCount++;
+          else if (item.confidence === 'medium') scopedThemes[theme].mediumCount++;
+          else scopedThemes[theme].lowCount++;
+        });
+
+        const feedbackSummary = {
+          themes: Object.entries(scopedThemes).map(([theme, data]) => ({
+            theme,
+            count: data.items.length,
+            highCount: data.highCount,
+            mediumCount: data.mediumCount,
+            lowCount: data.lowCount
+          })),
+          counts: {
+            total: scopedFeedback.length,
+            high: scopedFeedback.filter(f => f.confidence === 'high').length,
+            medium: scopedFeedback.filter(f => f.confidence === 'medium').length,
+            low: scopedFeedback.filter(f => f.confidence === 'low').length
+          },
+          topItems: Object.entries(scopedThemes)
+            .sort((a, b) => b[1].highCount - a[1].highCount)
+            .slice(0, 3)
+            .map(([theme, data]) => ({
+              theme,
+              highCount: data.highCount,
+              items: data.items.slice(0, 3).map(item => ({
+                text: item.text,
+                source: item.source,
+                confidence: item.confidence
+              }))
+            }))
+        };
+
+        try {
+          const res = await fetch(`${API_BASE}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              question: userMessage,
+              feedbackSummary: feedbackSummary
+            })
+          });
+          const data = await res.json();
+          setChatMessages(prev => [...prev, { role: 'assistant', content: data.response || 'Sorry, I could not generate a response.' }]);
+        } catch (err) {
+          console.error('Failed to send chat message:', err);
+          setChatMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, there was an error processing your question. Please try again.' }]);
+        } finally {
+          setChatLoading(false);
+        }
+      };
+
+      return (
+        <div className="space-y-6">
+          {/* Filters */}
+          <div className="card p-4">
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex-1 min-w-[200px]">
+                <input
+                  type="text"
+                  placeholder="Search feedback..."
+                  value={explorerSearch}
+                  onChange={(e) => setExplorerSearch(e.target.value)}
+                  className="input w-full"
+                  style={{ padding: '6px 12px', fontSize: '14px' }}
+                />
+              </div>
+
+              <div className="tabs">
+                <button
+                  onClick={() => setExplorerSignal('all')}
+                  className={`tab ${explorerSignal === 'all' ? 'tab-active' : ''}`}
+                >
+                  All Signal
+                </button>
+                <button
+                  onClick={() => setExplorerSignal('high')}
+                  className={`tab ${explorerSignal === 'high' ? 'tab-active' : ''}`}
+                >
+                  High
+                </button>
+                <button
+                  onClick={() => setExplorerSignal('medium')}
+                  className={`tab ${explorerSignal === 'medium' ? 'tab-active' : ''}`}
+                >
+                  Medium
+                </button>
+                <button
+                  onClick={() => setExplorerSignal('low')}
+                  className={`tab ${explorerSignal === 'low' ? 'tab-active' : ''}`}
+                >
+                  Low
+                </button>
+              </div>
+
+              <FilterDropdown
+                label="Source"
+                options={availableSources}
+                selected={explorerSources}
+                onToggle={toggleExplorerSource}
+              />
+
+              <FilterDropdown
+                label="Theme"
+                options={availableThemes}
+                selected={explorerThemes}
+                onToggle={toggleExplorerTheme}
+                formatOption={formatThemeName}
+              />
+
+              <select
+                value={explorerSort}
+                onChange={(e) => setExplorerSort(e.target.value)}
+                className="input"
+                style={{ padding: '6px 12px', fontSize: '14px' }}
+              >
+                <option value="newest">Newest First</option>
+                <option value="highest">Highest Signal</option>
+              </select>
+
+              {(explorerSearch || explorerSources.length > 0 || explorerThemes.length > 0 || explorerSignal !== 'all') && (
+                <button
+                  onClick={clearExplorerFilters}
+                  className="btn btn-ghost text-xs"
+                  style={{ padding: '6px 12px' }}
+                >
+                  Clear
+                </button>
+              )}
+
+              <div className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                {feedback.length} of {allFeedback.length} items
+              </div>
+            </div>
+          </div>
+
+          {/* Scoped Chat Toggle */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-semibold" style={{ color: 'var(--foreground)' }}>
+              Feedback Explorer
+            </h2>
+            <button
+              onClick={() => {
+                setExplorerChatScope(!explorerChatScope);
+                if (!chatOpen && !explorerChatScope) setChatOpen(true);
+              }}
+              className="btn btn-secondary"
+              style={{ fontSize: '14px' }}
+            >
+              {explorerChatScope ? '✓ ' : ''}Ask AI about these results
+            </button>
+          </div>
+
+          {/* Table View */}
+          <div className="card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--muted)' }}>
+                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase' }}>Signal</th>
+                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase' }}>Theme</th>
+                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase' }}>Source</th>
+                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase' }}>Snippet</th>
+                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase' }}>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {feedback.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" style={{ padding: '40px', textAlign: 'center', color: 'var(--muted-foreground)' }}>
+                        No feedback matches your filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    feedback.map((item) => (
+                      <tr
+                        key={item.id}
+                        onClick={() => navigate('focus', { id: item.id })}
+                        style={{
+                          borderBottom: '1px solid var(--border)',
+                          cursor: 'pointer',
+                          transition: 'background 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--muted)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = ''}
+                      >
+                        <td style={{ padding: '12px' }}>
+                          <span className={`badge ${getSignalBadge(item.confidence)}`}>
+                            {item.confidence}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px', fontSize: '14px', color: 'var(--foreground)' }}>
+                          {formatThemeName(item.theme || 'general')}
+                        </td>
+                        <td style={{ padding: '12px' }}>
+                          <span className="badge badge-source">
+                            {item.source}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px', fontSize: '14px', color: 'var(--foreground)', maxWidth: '400px' }}>
+                          <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {item.text}
+                          </div>
+                        </td>
+                        <td style={{ padding: '12px', fontSize: '12px', color: 'var(--muted-foreground)' }}>
+                          {new Date(item.timestamp).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Scoped Chat Panel */}
+          {explorerChatScope && (
+            <div className="card p-4" style={{ background: 'rgba(246, 130, 31, 0.05)', border: '1px solid rgba(246, 130, 31, 0.2)' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xs font-semibold" style={{ color: 'var(--accent)' }}>
+                  Scoped to current filters ({feedback.length} items)
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyPress={handleChatKeyPress}
+                  placeholder="Ask about these filtered results..."
+                  className="input flex-1"
+                  disabled={chatLoading}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleScopedChatSend();
+                    }
+                  }}
+                />
+                <button
+                  onClick={handleScopedChatSend}
+                  disabled={!chatInput.trim() || chatLoading}
+                  className="btn btn-primary"
+                >
+                  Send
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Focus View Component
+    function FocusView({
+      feedbackId,
+      feedback,
+      pmNotes,
+      setPmNotes,
+      focusAiResponse,
+      setFocusAiResponse,
+      focusAiLoading,
+      setFocusAiLoading,
+      navigate,
+      formatThemeName,
+      getSignalBadge,
+      API_BASE
+    }) {
+      const [focusChatMessages, setFocusChatMessages] = useState([]);
+      const [focusChatInput, setFocusChatInput] = useState('');
+      const focusChatEndRef = React.useRef(null);
+
+      useEffect(() => {
+        if (focusChatEndRef.current) {
+          focusChatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, [focusChatMessages, focusAiLoading]);
+
+      if (!feedback) {
+        return (
+          <div className="flex items-center justify-center h-64">
+            <p style={{ color: 'var(--muted-foreground)' }}>Feedback not found.</p>
+          </div>
+        );
+      }
+
+      const handleFocusChatSend = async () => {
+        if (!focusChatInput.trim() || focusAiLoading) return;
+
+        const userMessage = focusChatInput.trim();
+        setFocusChatInput('');
+        setFocusChatMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+        setFocusAiLoading(true);
+
+        try {
+          const res = await fetch(`${API_BASE}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              question: userMessage,
+              feedbackSummary: {
+                themes: [{ theme: feedback.theme || 'general', count: 1 }],
+                counts: { total: 1, high: feedback.confidence === 'high' ? 1 : 0, medium: feedback.confidence === 'medium' ? 1 : 0, low: feedback.confidence === 'low' ? 1 : 0 },
+                topItems: [{
+                  theme: feedback.theme || 'general',
+                  highCount: feedback.confidence === 'high' ? 1 : 0,
+                  items: [{ 
+                    text: feedback.text, 
+                    source: feedback.source, 
+                    confidence: feedback.confidence,
+                    theme: feedback.theme,
+                    user_type: feedback.user_type,
+                    labels: feedback.labels
+                  }]
+                }]
+              }
+            })
+          });
+          const data = await res.json();
+          setFocusChatMessages(prev => [...prev, { role: 'assistant', content: data.response || 'Sorry, I could not generate a response.' }]);
+        } catch (err) {
+          console.error('Failed to send chat message:', err);
+          setFocusChatMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, there was an error processing your question. Please try again.' }]);
+        } finally {
+          setFocusAiLoading(false);
+        }
+      };
+
+      const handleSuggestedPrompt = (prompt) => {
+        setFocusChatInput(prompt);
+      };
+
+      return (
+        <div className="space-y-6">
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-2 mb-4">
+            <button
+              onClick={() => navigate('explorer')}
+              className="btn btn-ghost text-sm"
+              style={{ padding: '6px 12px' }}
+            >
+              ← Back to Explorer
+            </button>
+            <span style={{ color: 'var(--muted-foreground)' }}>/</span>
+            <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Feedback</span>
+          </div>
+
+          {/* Feedback Card */}
+          <div className="card p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="badge badge-source">
+                {feedback.source}
+              </span>
+              <span className={`badge ${getSignalBadge(feedback.confidence)}`}>
+                {feedback.confidence === 'high' ? 'High' : feedback.confidence === 'medium' ? 'Medium' : 'Low'} Signal
+              </span>
+              <span className="text-sm" style={{ color: 'var(--muted-foreground)', marginLeft: 'auto' }}>
+                {new Date(feedback.timestamp).toLocaleDateString()}
+              </span>
+            </div>
+
+            <h2 className="text-xl font-semibold mb-3" style={{ color: 'var(--foreground)' }}>
+              {formatThemeName(feedback.theme || 'general')}
+            </h2>
+
+            <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--foreground)' }}>
+              {feedback.text}
+            </p>
+
+            {feedback.labels && feedback.labels.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {feedback.labels.map((label, i) => (
+                  <span key={i} className="badge badge-source">
+                    {label}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* AI Chat (this feedback) */}
+          <div className="card p-6">
+            <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--foreground)' }}>
+              AI Chat (this feedback)
+            </h3>
+            
+            {/* Suggested Prompts */}
+            <div className="flex gap-2 mb-4 flex-wrap">
+              <button
+                onClick={() => handleSuggestedPrompt('Summarize this feedback')}
+                className="btn btn-ghost text-xs"
+                style={{ padding: '4px 8px', fontSize: '12px' }}
+              >
+                Summarize
+              </button>
+              <button
+                onClick={() => handleSuggestedPrompt(`Why is this ${feedback.confidence === 'high' ? 'High' : feedback.confidence === 'medium' ? 'Medium' : 'Low'} Signal?`)}
+                className="btn btn-ghost text-xs"
+                style={{ padding: '4px 8px', fontSize: '12px' }}
+              >
+                Why {feedback.confidence === 'high' ? 'High' : feedback.confidence === 'medium' ? 'Medium' : 'Low'} Signal?
+              </button>
+              <button
+                onClick={() => handleSuggestedPrompt('What are the next steps for this feedback?')}
+                className="btn btn-ghost text-xs"
+                style={{ padding: '4px 8px', fontSize: '12px' }}
+              >
+                Next Steps
+              </button>
+            </div>
+
+            {/* Chat Messages */}
+            <div className="mb-4" style={{ minHeight: '200px', maxHeight: '400px', overflowY: 'auto', padding: '12px', background: 'var(--muted)', borderRadius: '8px' }}>
+              {focusChatMessages.length === 0 ? (
+                <div className="text-center mt-8">
+                  <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                    Ask me anything about this feedback item.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {focusChatMessages.map((msg, idx) => (
+                    <div
+                      key={idx}
+                      className={`message-bubble ${msg.role === 'user' ? 'message-user' : 'message-ai'}`}
+                    >
+                      {msg.content}
+                    </div>
+                  ))}
+                  {focusAiLoading && (
+                    <div className="message-bubble message-ai">
+                      <div className="loading text-sm">AI is thinking...</div>
+                    </div>
+                  )}
+                </div>
+              )}
+              <div ref={focusChatEndRef} />
+            </div>
+
+            {/* Chat Input */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={focusChatInput}
+                onChange={(e) => setFocusChatInput(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleFocusChatSend();
+                  }
+                }}
+                placeholder="Ask about this feedback..."
+                className="input flex-1"
+                disabled={focusAiLoading}
+              />
+              <button
+                onClick={handleFocusChatSend}
+                disabled={!focusChatInput.trim() || focusAiLoading}
+                className="btn btn-primary"
+                style={{ minWidth: '80px' }}
+              >
+                Send
+              </button>
+            </div>
+          </div>
+
+          {/* PM Notes */}
+          <div className="card p-6">
+            <h3 className="text-lg font-semibold mb-3" style={{ color: 'var(--foreground)' }}>
+              PM Notes
+            </h3>
+            <p className="text-xs mb-3" style={{ color: 'var(--muted-foreground)' }}>
+              Notes are saved automatically on this device.
+            </p>
+            <textarea
+              value={pmNotes}
+              onChange={(e) => setPmNotes(e.target.value)}
+              placeholder="Add your notes about this feedback..."
+              className="input w-full"
+              style={{ minHeight: '150px', padding: '12px', fontSize: '14px' }}
+            />
+            {pmNotes && (
+              <p className="text-xs mt-2" style={{ color: 'var(--muted-foreground)' }}>
+                ✓ Saved
+              </p>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Filter Dropdown Component
+    function FilterDropdown({ label, options, selected, onToggle, formatOption }) {
+      const [isOpen, setIsOpen] = useState(false);
+      const dropdownRef = React.useRef(null);
+
+      useEffect(() => {
+        const handleClickOutside = (event) => {
+          if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+            setIsOpen(false);
+          }
+        };
+
+        if (isOpen) {
+          document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+          document.removeEventListener('mousedown', handleClickOutside);
+        };
+      }, [isOpen]);
+
+      const displayLabel = selected.length > 0 ? `${label} (${selected.length})` : label;
+
+      return (
+        <div className="filter-dropdown" ref={dropdownRef}>
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className={`filter-chip ${selected.length > 0 ? 'active' : ''}`}
+          >
+            {displayLabel}
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {isOpen && (
+            <div className="filter-dropdown-content">
+              {options.map(option => {
+                const isSelected = selected.includes(option);
+                const displayText = formatOption ? formatOption(option) : option;
+                return (
+                  <div
+                    key={option}
+                    className={`filter-dropdown-item ${isSelected ? 'selected' : ''}`}
+                    onClick={() => {
+                      onToggle(option);
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => {}}
+                        style={{ cursor: 'pointer' }}
+                      />
+                      <span>{displayText}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+</html>

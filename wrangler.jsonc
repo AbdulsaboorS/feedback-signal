@@ -1,0 +1,31 @@
+{
+	"name": "feedback-signal",
+	"main": "src/index.ts",
+	"compatibility_date": "2024-01-18",
+	"compatibility_flags": [
+		"global_fetch_strictly_public"
+	],
+	"assets": {
+		// The path to the directory containing the `index.html` file to be served at `/`
+		"directory": "./public"
+	},
+	"observability": {
+		"enabled": true
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "feedback-db",
+			"database_id": "c8996602-2a5e-4241-abb3-d6980e7205d9"
+		}
+	],
+	"ai": {
+		"binding": "AI"
+	},
+	"kv_namespaces": [
+		{
+			"binding": "EXPLANATIONS",
+			"id": "826bc060957e4f59ac012224abf7ae62"
+		}
+	]
+}
